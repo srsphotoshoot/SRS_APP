@@ -2,24 +2,20 @@ import streamlit as st
 from PIL import Image
 from io import BytesIO
 import base64
-import google.generativeai as genai
 
-# Load Gemini API key from Streamlit secrets
+from google import genai
+from google.genai import types
+
+# Get API Key
 GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
-
 if not GEMINI_API_KEY:
     st.error("⚠️ Google API key not found in Streamlit secrets!")
     st.stop()
 
-# Configure Gemini API
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Your working model name
 MODEL_NAME = "gemini-3-pro-image-preview"
-model = genai.GenerativeModel(MODEL_NAME)
 
-
-VIRTUAL_TRYON_PROMPT = """Generate a photorealistic image of a professional fashion model wearing this EXACT lehenga outfit.
+# Your prompt
+VIRTUAL_TRYON_PROMPT ="""Generate a photorealistic image of a professional fashion model wearing this EXACT lehenga outfit.
 Preserve every detail of the original lehenga design exactly as it appears pattern, color, embroidery, waist shape, style, and skirt flow.
 Maintain proper body alignment, realistic fitting, and correct cloth tension around the waist, chest, cleavage area, and lower abdominal region.
 Make sure the blouse and lehenga sit naturally and continuously without gaps or separation at the belly area.
@@ -212,163 +208,129 @@ COLOR PRESERVATION (CRITICAL):
 The output must look like a professional fashion catalog photo with the model wearing THIS EXACT lehenga design and the image should be in 2k quality."""
 
 
-st.set_page_config(page_title="Virtual Lehenga Try-On", page_icon="👗", layout="wide")
 
-st.title("👗 Virtual Lehenga Try-On")
-st.markdown("Upload your lehenga image and generate a professional model try-on image")
+# Page config
+st.set_page_config(page_title="Virtual Lehenga Try-On (4K)", page_icon="👗", layout="wide")
+st.title("👗 Virtual Lehenga Try-On - High Resolution")
+st.markdown("Upload your lehenga image and generate a professional **high-resolution** model try-on image")
 
+# Sidebar settings
+with st.sidebar:
+    st.header("⚙️ Image Generation Settings")
+    resolution = st.selectbox("Output Resolution", ["1K", "2K", "4K"], index=2)
+    aspect_ratio = st.selectbox("Aspect Ratio", ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"], index=3)
+    st.divider()
+    st.info("📦 Make sure you've installed the NEW SDK:\n```\npip uninstall google-generativeai\npip install google-genai\n```")
+    st.caption(f"📐 Selected: {aspect_ratio} at {resolution} resolution")
+    st.caption(f"🔧 Model: {MODEL_NAME}")
 
+# Layout
 col1, col2 = st.columns([1, 1])
 
 with col1:
     st.subheader("📤 Upload Lehenga Image")
-    
-    # File uploader
-    uploaded_file = st.file_uploader(
-        "Choose a lehenga image",
-        type=["jpg", "jpeg", "png"],
-        help="Upload a clear image of the lehenga outfit"
-    )
-    
-    # Display uploaded image
+    uploaded_file = st.file_uploader("Choose a lehenga image", type=["jpg","jpeg","png"])
     if uploaded_file:
         input_image = Image.open(uploaded_file).convert("RGB")
+        st.caption(f"Input: {input_image.width}x{input_image.height}px")
         st.image(input_image, caption="Input Lehenga", use_container_width=True)
-        
-        # Optional: Show the prompt being used
         with st.expander("📝 View Generation Prompt"):
             st.text_area("Prompt", VIRTUAL_TRYON_PROMPT, height=300, disabled=True)
-    
-    # Generate button
     generate_btn = st.button("🎨 Generate Model Image", type="primary", use_container_width=True)
 
 with col2:
     st.subheader("✨ Generated Result")
-    
-    # Placeholder for output
     output_placeholder = st.empty()
-    
     if not uploaded_file:
         output_placeholder.info("👈 Upload a lehenga image to get started")
 
-# ----------------- Generation Logic -----------------
+# Generation Logic
 if generate_btn:
     if not uploaded_file:
         st.error("Please upload a lehenga image first!")
     else:
-        with st.spinner("🎨 Generating model image... This may take a moment..."):
+        with st.spinner(f"🎨 Generating {resolution} resolution model image..."):
             try:
-                # Prepare content for the model
-                contents = [
-                    VIRTUAL_TRYON_PROMPT,
-                    input_image
-                ]
-                
-                # Generate content
-                response = model.generate_content(contents)
-                # Debug - Add temporarily
-                st.write("**Checking response parts:**")
-                if response.candidates:
-                    for i, candidate in enumerate(response.candidates):
-                      st.write(f"Candidate {i}:")
-                if candidate.content and candidate.content.parts:
-                 for j, part in enumerate(candidate.content.parts):
-                    st.write(f"  Part {j} type: {type(part)}")
-                    st.write(f"  Part {j} attributes: {[attr for attr in dir(part) if not attr.startswith('_')]}")
-                
-                # Extract generated image and description
+                client = genai.Client(api_key=GEMINI_API_KEY)
+
+                # Convert input image to bytes
+                img_bytes_io = BytesIO()
+                input_image.save(img_bytes_io, format="PNG")
+                img_bytes = img_bytes_io.getvalue()
+
+                # Create image part
+                image_part = types.Part.from_bytes(data=img_bytes, mime_type='image/png')
+
+                # Generate config
+                config = types.GenerateContentConfig(
+                    response_modalities=['TEXT', 'IMAGE'],
+                    image_config=types.ImageConfig(aspect_ratio=aspect_ratio, image_size=resolution)
+                )
+
+                # Generate
+                response = client.models.generate_content(
+                    model=MODEL_NAME,
+                    contents=[VIRTUAL_TRYON_PROMPT, image_part],
+                    config=config
+                )
+
+                # Extract result
                 description_text = ""
                 output_image_data = None
-                
-                # Try to get text first
-                try:
-                    if hasattr(response, 'text'):
-                        description_text = response.text
-                except:
-                    pass
-                
-                # Check candidates for parts
-                if hasattr(response, 'candidates') and response.candidates:
-                    for candidate in response.candidates:
-                        if hasattr(candidate, 'content') and candidate.content:
-                            content = candidate.content
-                            if hasattr(content, 'parts') and content.parts:
-                                for part in content.parts:
-                                    # Try to get text from part
-                                    try:
-                                        if hasattr(part, 'text'):
-                                            part_text = part.text
-                                            if part_text:
-                                                description_text += part_text
-                                    except:
-                                        pass
-                                    
-                                    # Try to get image data from inline_data
-                                    try:
-                                        if hasattr(part, 'inline_data'):
-                                            inline = part.inline_data
-                                            if hasattr(inline, 'data'):
-                                                img_data = inline.data
-                                                # Handle both bytes and base64 string
-                                                if isinstance(img_data, bytes):
-                                                    output_image_data = img_data
-                                                elif isinstance(img_data, str):
-                                                    output_image_data = base64.b64decode(img_data)
-                                    except Exception as e:
-                                        st.write(f"Could not extract inline_data: {e}")
-                                    
-                                    # Try blob as fallback
-                                    try:
-                                        if not output_image_data and hasattr(part, 'blob'):
-                                            blob = part.blob
-                                            if hasattr(blob, 'data'):
-                                                output_image_data = blob.data
-                                    except:
-                                        pass
-                
-                # Display results
+
+                if hasattr(response, "parts"):
+                    for part in response.parts:
+                        # Text
+                        if hasattr(part, "text") and part.text:
+                            description_text += part.text
+
+                        # Image via as_image()
+                        if hasattr(part, "as_image"):
+                            try:
+                                img = part.as_image()
+                                if img:
+                                    buf = BytesIO()
+                                    img.save(buf, format="PNG")
+                                    output_image_data = buf.getvalue()
+                            except:
+                                pass
+
+                        # Fallback: inline_data
+                        if hasattr(part, "inline_data"):
+                            try:
+                                inline = part.inline_data
+                                if hasattr(inline, "data"):
+                                    img_data = inline.data
+                                    if isinstance(img_data, (bytes, bytearray)):
+                                        output_image_data = img_data
+                                    elif isinstance(img_data, str):
+                                        output_image_data = base64.b64decode(img_data)
+                            except Exception as e:
+                                st.write(f"⚠️ inline_data extraction failed: {e}")
+
+                # Display image
                 with col2:
                     if output_image_data:
-                        # Show generated image
-                        img_bytes = BytesIO(output_image_data)
-                        generated_image = Image.open(img_bytes)
-                        
-                        output_placeholder.image(
-                            generated_image,
-                            caption="Generated Model Image",
-                            use_container_width=True
-                        )
-                        
-                        # Download button
+                        generated_image = Image.open(BytesIO(output_image_data))
+                        st.caption(f"✅ Generated: {generated_image.width}x{generated_image.height}px at {resolution}")
+                        output_placeholder.image(generated_image, caption=f"Generated Model Image ({resolution} - {aspect_ratio})", use_container_width=True)
                         st.download_button(
-                            label="📥 Download Image",
+                            label=f"📥 Download {resolution} Image",
                             data=output_image_data,
-                            file_name="lehenga_model_tryon.jpg",
-                            mime="image/jpeg",
-                            use_container_width=True
+                            file_name=f"lehenga_{resolution}_{aspect_ratio}.jpg",
+                            mime="image/jpeg"
                         )
-                        
-                        # Show description if available
                         if description_text:
                             with st.expander("📄 Generation Details"):
                                 st.write(description_text)
-                        
-                        st.success("✅ Image generated successfully!")
-                    
+                        st.success(f"✅ {resolution} resolution image generated successfully!")
                     else:
                         output_placeholder.error("❌ No image was generated. Please try again.")
                         if description_text:
-                            st.write("Response received:", description_text)
-                
+                            st.write("Response text:", description_text)
+                        with st.expander("🔍 Debug Info"):
+                            st.write(response)
+
             except Exception as e:
                 st.error(f"❌ Error generating image: {str(e)}")
-                st.info("Please check your API key and model access.")
-
-
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #666;'>
-    <p>💡 <b>Tip:</b> Use high-quality, well-lit images of lehengas for best results</p>
-    <p>🔧 Using model: <code>gemini-3-pro-image-preview</code></p>
-</div>
-""", unsafe_allow_html=True)
+                st.exception(e)
