@@ -2,3 +2,4 @@ streamlit
 Pillow
 google-generativeai
 python-dotenv
+google-genai
