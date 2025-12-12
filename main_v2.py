@@ -131,8 +131,8 @@ Produce a **2K, ultra-sharp, fashion catalog quality** try-on image where the SH
 """
 
 
-st.set_page_config(page_title="SHREE RADHA STUDIO TRY-ON", page_icon="👗", layout="wide")
-st.title("👗 SRS-TRY-ON")
+st.set_page_config(page_title="SRS-TRY-ON", page_icon="👗", layout="wide")
+st.title("👗 SHREE RADHA STUDIO TRY-ON")
 
 # Sidebar settings
 with st.sidebar:
