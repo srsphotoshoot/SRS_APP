@@ -15,7 +15,7 @@ if not GEMINI_API_KEY:
 MODEL_NAME = "gemini-3-pro-image-preview"
 
 # Prompt
-VIRTUAL_TRYON_PROMPT = """Generate a photorealistic image of a professional Indian fashion model wearing this EXACT lehenga outfit.  
+VIRTUAL_TRYON_PROMPT = """Generate a photorealistic image of a professional Indian fashion model wearing this EXACT dress outfit.  
 The uploaded outfit is the ABSOLUTE GROUND TRUTH. Reproduce it with ZERO deviation.  
 No reinterpretation. No redesign. No missing details. 1:1 replication required.
 
@@ -80,9 +80,9 @@ UPPER BODY STRUCTURE & FIT (CRITICAL ZONE)
 • Shoulder → neckline → chest → upper waist must have continuous anatomical logic.
 
 ===========================
-LEHENGA & DUPATTA ACCURACY
+dress & DUPATTA ACCURACY
 ===========================
-• Replicate lehenga silhouette, flare volume, kalis/panels, pleats, hemline width, embroidery layout, and waistband design.  
+• Replicate dress silhouette, flare volume, kalis/panels, pleats, hemline width, embroidery layout, and waistband design.  
 • Match skirt flow, fold depth, and fabric weight exactly.  
 • Dupatta must retain original drape style, border design, booti work, transparency level, and fall direction.  
 • Preserve exact border width, embellishment type, and corner tassels/latkans.
@@ -154,7 +154,7 @@ keep upload file size between
 # Image upload columns
 col1, col2 = st.columns([1, 1])
 with col1:
-    st.subheader("📤 Upload Main Lehenga Image")
+    st.subheader("📤 Upload Main dress Image")
     main_image_file = st.file_uploader("Main Image", type=["jpg", "jpeg", "png"])
     if main_image_file:
         main_image = Image.open(main_image_file).convert("RGB")
@@ -164,7 +164,7 @@ with col1:
     ref1_file = st.file_uploader("Reference Image 1", type=["jpg", "jpeg", "png"])
     ref1_image = Image.open(ref1_file).convert("RGB") if ref1_file else None
 
-    st.subheader("📤 LEHENGA or LOWER PORTION")
+    st.subheader("📤 dress or LOWER PORTION")
     ref2_file = st.file_uploader("Reference Image 2", type=["jpg", "jpeg", "png"])
     ref2_image = Image.open(ref2_file).convert("RGB") if ref2_file else None
 
@@ -179,7 +179,7 @@ def image_to_part(pil_image: Image.Image) -> types.Part:
 # Generate image
 if generate_btn:
     if not main_image_file:
-        st.error("Please upload the main lehenga image!")
+        st.error("Please upload the main dress image!")
     else:
         with st.spinner("🎨 Generating image..."):
             try:
@@ -228,7 +228,7 @@ if generate_btn:
                     st.download_button(
                         label="📥 Download Generated Image",
                         data=output_image_data,
-                        file_name=f"lehenga_tryon_{resolution}_{aspect_ratio.replace(':','x')}.jpg",
+                        file_name=f"dress_tryon_{resolution}_{aspect_ratio.replace(':','x')}.jpg",
                         mime="image/jpg"
                     )
                     if description_text:
