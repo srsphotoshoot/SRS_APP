@@ -143,11 +143,14 @@ with st.sidebar:
         options=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"],
         index=3
     )
-    NOTEBOX = st.text_area(
-    "NOTEBOX",
-    "keep upload file size between \n1-2M.B. for better results\n2k generation suggested.\nSOURYA")
+    NOTEBOX = st.markdown("""
+**NOTEBOX**
 
-
+keep upload file size between  
+**1–2 MB** for better results  
+2K generation suggested.  
+**SOURYA**
+""")
 # Image upload columns
 col1, col2 = st.columns([1, 1])
 with col1:
