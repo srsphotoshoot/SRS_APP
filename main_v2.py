@@ -160,11 +160,11 @@ with col1:
         main_image = Image.open(main_image_file).convert("RGB")
         st.image(main_image, caption="Main Image", use_container_width=True)
 
-    st.subheader("📤 Optional Reference Image 1")
+    st.subheader("📤 **CHOLI IMAGE**")
     ref1_file = st.file_uploader("Reference Image 1", type=["jpg", "jpeg", "png"])
     ref1_image = Image.open(ref1_file).convert("RGB") if ref1_file else None
 
-    st.subheader("📤 Optional Reference Image 2")
+    st.subheader("📤 LEHENGA or LOWER PORTION")
     ref2_file = st.file_uploader("Reference Image 2", type=["jpg", "jpeg", "png"])
     ref2_image = Image.open(ref2_file).convert("RGB") if ref2_file else None
 
