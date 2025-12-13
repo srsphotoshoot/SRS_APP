@@ -181,6 +181,7 @@ if generate_btn:
     if not main_image_file:
         st.error("Please upload the main dress image!")
     else:
+        st.snow()
         with st.spinner("🎨 Generating image..."):
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY)
