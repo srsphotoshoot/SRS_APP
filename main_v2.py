@@ -192,23 +192,21 @@ if generate_btn:
                 if ref2_image:
                     parts.append(image_to_part(ref2_image))
 
-                # Wrap parts in Content
+          
                 content = types.Content(role="user", parts=parts)
 
-                # Image generation config
+           
                 config = types.GenerateContentConfig(
                     response_modalities=["IMAGE", "TEXT"],
                     image_config=types.ImageConfig(aspect_ratio=aspect_ratio, image_size=resolution)
                 )
 
-                # Generate content
                 response = client.models.generate_content(
                     model=MODEL_NAME,
                     contents=[content],
                     config=config
                 )
 
-                # Extract image bytes from response
                 output_image_data = None
                 description_text = ""
 
@@ -221,7 +219,6 @@ if generate_btn:
                             if hasattr(part, "text") and part.text:
                                 description_text += part.text
 
-                # Display output
                 if output_image_data:
                     generated_image = Image.open(BytesIO(output_image_data))
                     st.image(generated_image, caption=f"Generated Image ({resolution} - {aspect_ratio})", use_container_width=True)
