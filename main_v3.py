@@ -38,6 +38,10 @@ VIRTUAL_TRYON_PROMPT = """
 Generate a photorealistic image of a professional Indian fashion model wearing this EXACT lehenga outfit.
 
 STRICTLY DO NOT MAKE ANY CHANGE IN DRESS.
+If resolution ≥ 2K:
+- Embroidery thread count must be visible
+- Border edges must be razor-sharp
+- No texture smoothing allowed
 
 LEHENGA & DUPATTA ACCURACY
 • Replicate lehenga silhouette, flare volume, kalis/panels, pleats, hemline width, embroidery layout, and waistband design.
