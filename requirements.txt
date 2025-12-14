@@ -4,3 +4,4 @@ google-generativeai
 python-dotenv
 google-genai
 streamlit_image_coordinates
+opencv-python-headless
