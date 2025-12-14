@@ -36,12 +36,19 @@ RESOLUTION_MAP = {"1K": 1024, "2K": 2048, "4K": 4096}
 # -----------------------
 VIRTUAL_TRYON_PROMPT = """
 Generate a photorealistic image of a professional Indian fashion model wearing this EXACT lehenga outfit.
-
+FORBIDDEN ACTIONS:
+❌ Do NOT redesign
+❌ Do NOT beautify
+❌ Do NOT correct symmetry
+❌ Do NOT enhance embroidery
+❌ Do NOT hallucinate missing details
+LOCKED REGIONS (HIGHEST PRIORITY):
+The following regions are STRICTLY LOCKED and must be copied EXACTLY:
+- Shoulder
+- Baju / Sleeve
+- Blouse Border (Choli Border)
+- Upper Waist Seam
 STRICTLY DO NOT MAKE ANY CHANGE IN DRESS.
-If resolution ≥ 2K:
-- Embroidery thread count must be visible
-- Border edges must be razor-sharp
-- No texture smoothing allowed
 
 LEHENGA & DUPATTA ACCURACY
 • Replicate lehenga silhouette, flare volume, kalis/panels, pleats, hemline width, embroidery layout, and waistband design.
@@ -89,10 +96,6 @@ with st.sidebar:
     lehenga_color = "#FFFFFF"
     dupatta_color = "#FFFFFF"
 
-
-# ================================
-# IMAGE UPLOAD SECTION
-# ================================
 col1, col2 = st.columns(2)
 
 with col1:
