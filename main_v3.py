@@ -11,7 +11,7 @@ from google.genai import types
 ################################
 # working well accuracy ~ 85% 
 ################################
-# ready to deploy
+# deployed version.
 ################################
 from streamlit_image_coordinates import streamlit_image_coordinates
 
