@@ -134,7 +134,7 @@ st.title("👗 SRS – Strict Replication Try-On")
 with st.sidebar:
     st.header("⚙️ Settings")
     st.markdown(
-    "<div style='color:red;'>please keep the file size \n between ** 2-4 MB ** </div>",
+    "<div style='color:red;'>please keep the file size \n between 1-3 MB </div>",
     unsafe_allow_html=True
 )
 
