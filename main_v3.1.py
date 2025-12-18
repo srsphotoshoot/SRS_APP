@@ -133,6 +133,11 @@ st.title("👗 SRS – Strict Replication Try-On")
 # ==================================================
 with st.sidebar:
     st.header("⚙️ Settings")
+    st.markdown(
+    "<div style='color:red;'>please keep the file size \n between ** 2-4 MB ** </div>",
+    unsafe_allow_html=True
+)
+
 
     resolution_choice = st.selectbox("Resolution", ["1K", "2K", "4K"], index=1)
 
