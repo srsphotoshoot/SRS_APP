@@ -10,7 +10,7 @@ from google.genai import types
 from streamlit_image_coordinates import streamlit_image_coordinates
 
 # ==================================================
-# CONFIG testv3
+# CONFIG testv3 deployed 
 # ==================================================
 GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 if not GEMINI_API_KEY:
