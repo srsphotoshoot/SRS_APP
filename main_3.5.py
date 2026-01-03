@@ -341,9 +341,10 @@ with col2:
 # ==================================================
 blouse_color = lehenga_color = dupatta_color = "#FFFFFF"
 
-if color_mode == "Manual (Dropper)" and main_image:
+if color_mode == "Manual (Dropper)" and main_image is not None:
     st.subheader("🎯 Manual Color Picker")
-    coords = streamlit_image_coordinates(main_image, key="picker", use_column_width=True)
+    st.info("💡 Click on the image to pick a color")
+    coords = streamlit_image_coordinates(main_image, key="picker")
     if coords:
         disp_x, disp_y = int(coords["x"]), int(coords["y"])
         disp_w, disp_h = int(coords["width"]), int(coords["height"])
@@ -357,6 +358,44 @@ if color_mode == "Manual (Dropper)" and main_image:
 
         r, g, b = main_image.getpixel((real_x, real_y))
         picked_hex = f"#{r:02X}{g:02X}{b:02X}"
+
+        # ==================================================
+        # MAGNIFIER & PIXEL VIEW
+        # ==================================================
+        mag_col1, mag_col2 = st.columns(2)
+        
+        with mag_col1:
+            st.markdown("**🔍 Magnified View**")
+            # Extract a region around the picked pixel (20x20 area)
+            mag_size = 20
+            x_start = max(0, real_x - mag_size)
+            x_end = min(orig_w, real_x + mag_size)
+            y_start = max(0, real_y - mag_size)
+            y_end = min(orig_h, real_y + mag_size)
+            
+            mag_region = main_image.crop((x_start, y_start, x_end, y_end))
+            mag_region_enlarged = mag_region.resize((300, 300), Image.NEAREST)
+            st.image(mag_region_enlarged, width="stretch")
+        
+        with mag_col2:
+            st.markdown("**📊 Pixel Information**")
+            # Create a color swatch and pixel info
+            col_swatch, col_info = st.columns([1, 2])
+            
+            with col_swatch:
+                # Create a color swatch
+                swatch = Image.new("RGB", (100, 100), (r, g, b))
+                st.image(swatch, width="stretch")
+            
+            with col_info:
+                st.markdown(f"""
+                **Picked Color:**
+                - **HEX:** `{picked_hex}`
+                - **RGB:** `({r}, {g}, {b})`
+                - **Position:** `({real_x}, {real_y})`
+                """)
+        
+        st.divider()
 
         target = st.selectbox("Apply picked color to", ["Blouse", "Lehenga", "Dupatta"])
         if target == "Blouse":
