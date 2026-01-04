@@ -254,8 +254,8 @@ BACKGROUND_COLOR_OPTIONS = {
     "Printed Lehenga": ["royal grey", "royal brown", "royal cream"],
     "Heavy Lehenga": ["royal outdoor", "royal indian fort", "royal palace"],
     "Western Dress": ["royal grey", "royal brown", "royal cream"],
-    "Indo-Western": ["royal gold", "royal navy", "royal emerald"],
-    "Gown": ["royal gold", "royal champagne", "royal ivory"],
+    "Indo-Western": ["royal outdoor", "royal indian fort", "royal palace"],
+    "Gown": ["royal outdoor", "royal indian fort", "royal palace"],
     "Saree": ["royal grey", "royal brown", "royal cream"],
     "Plazo-set": ["royal grey", "royal brown", "royal cream"]
 }
