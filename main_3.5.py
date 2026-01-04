@@ -247,14 +247,24 @@ def get_dupatta_prompt(dress_type):
         return DUPATTA_LOCK_PROMPT
     return ""
 
-DRESS_BACKGROUND_MAP = {
-    "Printed Lehenga": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
+# ==================================================
+# COLOR EXTRACTION FROM PROMPTS
+# ==================================================
+BACKGROUND_COLOR_OPTIONS = {
+    "Printed Lehenga": ["royal grey", "royal brown", "royal cream"],
+    "Heavy Lehenga": ["royal outdoor", "royal indian fort", "royal palace"],
+    "Western Dress": ["royal grey", "royal brown", "royal cream"],
+    "Indo-Western": ["royal gold", "royal navy", "royal emerald"],
+    "Gown": ["royal gold", "royal champagne", "royal ivory"],
+    "Saree": ["royal grey", "royal brown", "royal cream"],
+    "Plazo-set": ["royal grey", "royal brown", "royal cream"]
+}
+
+# Background descriptions for ornate/outdoor backgrounds
+ORNATE_BACKGROUND_DESCRIPTIONS = {
     "Heavy Lehenga": "BACKGROUND: Royal outdoor background with ornate settings.",
-    "Western Dress": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
     "Indo-Western": "BACKGROUND: Royal outdoor background with contemporary elegance.",
-    "Gown": "BACKGROUND: Elegant outdoor background with sophisticated ambiance.",
-    "Saree": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
-    "Plazo-set": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream)."
+    "Gown": "BACKGROUND: Elegant outdoor background with sophisticated ambiance."
 }
 
 POSE_PROMPTS = {
@@ -267,7 +277,15 @@ POSE_PROMPTS = {
 # ==================================================
 # FINAL PROMPT BUILDER
 # ==================================================
-def build_final_prompt(dress_type, blouse_color, lehenga_color, dupatta_color, pose_style):
+def build_final_prompt(dress_type, blouse_color, lehenga_color, dupatta_color, background_color, pose_style):
+    # Determine background prompt based on dress type
+    if dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
+        # Ornate backgrounds remain unchanged
+        background_prompt = ORNATE_BACKGROUND_DESCRIPTIONS[dress_type]
+    else:
+        # Simple color backgrounds use selected color
+        background_prompt = f"BACKGROUND: Plain simple background ({background_color})."
+    
     return (
         BASE_PROMPT_MAP[dress_type]
         + "\n\nFORBIDDEN ACTIONS:\n"
@@ -293,7 +311,7 @@ Dupatta: {dupatta_color}
           "- Pixel-adjacent replication only\n"
           "- Background must NOT affect garment colors or shape\n"
         + "\n"
-        + DRESS_BACKGROUND_MAP[dress_type]
+        + background_prompt
         + "\n"
         + POSE_PROMPTS[pose_style]
     )
@@ -335,6 +353,13 @@ with col2:
     ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
     ref1_image = compress_upload_image(Image.open(ref1_file), upload_quality) if ref1_file else None
     ref2_image = compress_upload_image(Image.open(ref2_file), upload_quality) if ref2_file else None
+
+# ==================================================
+# BACKGROUND COLOR SELECTOR (DROPDOWN)
+# ==================================================
+available_bg_colors = BACKGROUND_COLOR_OPTIONS.get(dress_type, ["royal grey"])
+background_color_selected = st.selectbox("Select Background Color", available_bg_colors)
+background_color = background_color_selected  # Store for prompt
 
 # ==================================================
 # COLOR PICKER (PIXEL-ACCURATE)
@@ -439,7 +464,7 @@ if st.button("🎨 Generate Image") and main_image:
     with st.spinner("Generating image..."):
         try:
             st.session_state.final_prompt = build_final_prompt(
-                dress_type, blouse_color, lehenga_color, dupatta_color, pose_style
+                dress_type, blouse_color, lehenga_color, dupatta_color, background_color, pose_style
             )
 
             parts = [
