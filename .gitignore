@@ -23,7 +23,6 @@ Thumbs.db
 
 .cache/
 test.py
-*.png
 *.jpeg
 *.jpg
 test.py
