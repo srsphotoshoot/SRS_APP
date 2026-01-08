@@ -444,11 +444,16 @@ if st.session_state.confirm_redirect:
     with col_yes:
         if st.button("✅ Yes"):
             st.markdown(
-                """
-                <meta http-equiv="refresh" content="0; url=https://forms.gle/uJ3NwZKthifgF5Q88">
-                """,
-                unsafe_allow_html=True
-            )
+    """
+    <a href="https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform"
+       target="_blank"
+       rel="noopener noreferrer">
+       👉 Click here to open the form
+    </a>
+    """,
+    unsafe_allow_html=True
+)
+
             st.session_state.confirm_redirect = False
 
     with col_no:
