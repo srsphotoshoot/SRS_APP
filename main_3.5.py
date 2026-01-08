@@ -43,6 +43,8 @@ MODEL_NAME = "gemini-3-pro-image-preview"
 st.session_state.setdefault("last_generated_image", None)
 st.session_state.setdefault("retry_mode", False)
 st.session_state.setdefault("final_prompt", "")
+st.session_state.setdefault("confirm_redirect", False)
+
 
 # ==================================================
 # IMAGE UTILS
@@ -429,6 +431,29 @@ if color_mode == "Manual (Dropper)" and main_image is not None:
             lehenga_color = picked_hex
         else:
             dupatta_color = picked_hex
+# 🔗 External Redirect Button
+if st.sidebar.button("🔗 FEEDBACK HERE"):
+    st.session_state.confirm_redirect = True
+
+# ⚠️ Confirmation Popup (Streamlit-style)
+if st.session_state.confirm_redirect:
+    st.sidebar.warning("⚠️ Are you sure you want to leave this app?")
+
+    col_yes, col_no = st.sidebar.columns(2)
+
+    with col_yes:
+        if st.button("✅ Yes"):
+            st.markdown(
+                """
+                <meta http-equiv="refresh" content="0; url=https://forms.gle/uJ3NwZKthifgF5Q88">
+                """,
+                unsafe_allow_html=True
+            )
+            st.session_state.confirm_redirect = False
+
+    with col_no:
+        if st.button("❌ No"):
+            st.session_state.confirm_redirect = False
 
 # ==================================================
 # FALLBACK GENERATION
