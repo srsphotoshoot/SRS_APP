@@ -13,7 +13,7 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 # ==================================================
 st.set_page_config(
     page_title="SRS – Strict Replication Try-On",
-    page_icon="logo/1.png",
+    page_icon="logo/2.png",
     layout="wide"
 )
 
@@ -21,7 +21,7 @@ st.set_page_config(
 # LOGO
 # ==================================================
 try:
-    logo = Image.open("logo/1.png")
+    logo = Image.open("logo/2.png")
     st.sidebar.image(logo, width=200)
     st.sidebar.divider()
 except Exception as e:
