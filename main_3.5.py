@@ -445,7 +445,7 @@ if st.session_state.confirm_redirect:
         if st.button("✅ Yes"):
             st.markdown(
     """
-    <a href="https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform"
+    <a href="https://forms.gle/uJ3NwZKthifgF5Q88"
        target="_blank"
        rel="noopener noreferrer">
        👉 Click here to open the form
