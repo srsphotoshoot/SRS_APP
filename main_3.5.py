@@ -44,6 +44,14 @@ st.session_state.setdefault("last_generated_image", None)
 st.session_state.setdefault("retry_mode", False)
 st.session_state.setdefault("final_prompt", "")
 st.session_state.setdefault("confirm_redirect", False)
+st.session_state.setdefault("main_image", None)
+st.session_state.setdefault("main_file_sig", None)
+
+st.session_state.setdefault("ref1_image", None)
+st.session_state.setdefault("ref1_file_sig", None)
+
+st.session_state.setdefault("ref2_image", None)
+st.session_state.setdefault("ref2_file_sig", None)
 
 
 # ==================================================
@@ -511,45 +519,60 @@ with st.sidebar:
 # ==================================================
 st.subheader("📸 Main Image")
 main_file = st.file_uploader("Upload Main Image", ["jpg", "jpeg", "png"])
+
 if main_file:
-    if disable_compression:
-        main_image = Image.open(main_file).convert("RGB")
-        main_image = ImageOps.exif_transpose(main_image)
-        st.info("⚡ Compression disabled - using original image")
-    else:
-        main_image = compress_upload_image(Image.open(main_file), upload_quality)
+    sig = (main_file.name, main_file.size)
+
+    if st.session_state.main_file_sig != sig:
+        st.session_state.main_image = compress_upload_image(
+            Image.open(main_file), upload_quality
+        )
+        st.session_state.main_file_sig = sig
+
+    main_image = st.session_state.main_image
 else:
     main_image = None
+    st.session_state.main_file_sig = None
+    st.session_state.main_image = None
 
 if main_image:
-    st.image(main_image, width ="stretch")
-
-st.divider()
+    st.image(main_image, width="stretch")
 
 st.subheader("📚 Reference Images")
 ref1_file = st.file_uploader("Upload Choli Reference", ["jpg", "jpeg", "png"])
+
 if ref1_file:
-    if disable_compression:
-        ref1_image = Image.open(ref1_file).convert("RGB")
-        ref1_image = ImageOps.exif_transpose(ref1_image)
-    else:
-        ref1_image = compress_upload_image(Image.open(ref1_file), upload_quality)
+    sig = (ref1_file.name, ref1_file.size)
+
+    if st.session_state.ref1_file_sig != sig:
+        st.session_state.ref1_image = compress_upload_image(
+            Image.open(ref1_file), upload_quality
+        )
+        st.session_state.ref1_file_sig = sig
+
+    ref1_image = st.session_state.ref1_image
 else:
     ref1_image = None
+    st.session_state.ref1_file_sig = None
+    st.session_state.ref1_image = None
 
 
 ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
+
 if ref2_file:
-    if disable_compression:
-        ref2_image = Image.open(ref2_file).convert("RGB")
-        ref2_image = ImageOps.exif_transpose(ref2_image)
-    else:
-        ref2_image = compress_upload_image(Image.open(ref2_file), upload_quality)
+    sig = (ref2_file.name, ref2_file.size)
+
+    if st.session_state.ref2_file_sig != sig:
+        st.session_state.ref2_image = compress_upload_image(
+            Image.open(ref2_file), upload_quality
+        )
+        st.session_state.ref2_file_sig = sig
+
+    ref2_image = st.session_state.ref2_image
 else:
     ref2_image = None
-
-
-
+    st.session_state.ref2_file_sig = None
+    st.session_state.ref2_image = None
 # ==================================================
 # BACKGROUND COLOR SELECTOR (DROPDOWN)
 # ==================================================
