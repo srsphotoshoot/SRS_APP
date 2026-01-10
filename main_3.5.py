@@ -554,11 +554,10 @@ ref1_file = st.file_uploader("Upload Choli Reference", ["jpg", "jpeg", "png"])
 
 if ref1_file:
     sig = (
-    ref1_file.name,
-    ref1_file.size,
-    hash(ref1_file.getbuffer().tobytes())
-)
-
+        ref1_file.name,
+        ref1_file.size,
+        hash(ref1_file.getbuffer().tobytes())
+    )
 
     if st.session_state.ref1_file_sig != sig:
         img = Image.open(ref1_file)
@@ -568,25 +567,24 @@ if ref1_file:
             st.info("⚡ Compression disabled for Choli reference")
         else:
             img = compress_upload_image(img, upload_quality)
-    st.session_state.ref1_image = img
-    st.session_state.ref1_file_sig = sig
+
+        st.session_state.ref1_image = img
+        st.session_state.ref1_file_sig = sig
 
     ref1_image = st.session_state.ref1_image
 else:
     ref1_image = None
-    st.session_state.ref1_file_sig = None
     st.session_state.ref1_image = None
+    st.session_state.ref1_file_sig = None
 
 
 ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
-
 if ref2_file:
     sig = (
-    ref2_file.name,
-    ref2_file.size,
-    hash(ref2_file.getbuffer().tobytes())
-)
-
+        ref2_file.name,
+        ref2_file.size,
+        hash(ref2_file.getbuffer().tobytes())
+    )
 
     if st.session_state.ref2_file_sig != sig:
         img = Image.open(ref2_file)
@@ -596,14 +594,16 @@ if ref2_file:
             st.info("⚡ Compression disabled for Lehenga reference")
         else:
             img = compress_upload_image(img, upload_quality)
-    st.session_state.ref2_image = img
-    st.session_state.ref2_file_sig = sig
+
+        st.session_state.ref2_image = img
+        st.session_state.ref2_file_sig = sig
 
     ref2_image = st.session_state.ref2_image
 else:
     ref2_image = None
-    st.session_state.ref2_file_sig = None
     st.session_state.ref2_image = None
+    st.session_state.ref2_file_sig = None
+
 # ==================================================
 # BACKGROUND COLOR SELECTOR (DROPDOWN)
 # ==================================================
