@@ -521,13 +521,24 @@ st.subheader("📸 Main Image")
 main_file = st.file_uploader("Upload Main Image", ["jpg", "jpeg", "png"])
 
 if main_file:
-    sig = (main_file.name, main_file.size)
+    sig = (
+    main_file.name,
+    main_file.size,
+    hash(main_file.getbuffer().tobytes())
+)
+
 
     if st.session_state.main_file_sig != sig:
-        st.session_state.main_image = compress_upload_image(
-            Image.open(main_file), upload_quality
-        )
+        img = Image.open(main_file)
+
+        if disable_compression:
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            st.info("⚡ Compression disabled - using original image")
+        else:
+            img = compress_upload_image(img, upload_quality)
+        st.session_state.main_image = img
         st.session_state.main_file_sig = sig
+
 
     main_image = st.session_state.main_image
 else:
@@ -542,13 +553,23 @@ st.subheader("📚 Reference Images")
 ref1_file = st.file_uploader("Upload Choli Reference", ["jpg", "jpeg", "png"])
 
 if ref1_file:
-    sig = (ref1_file.name, ref1_file.size)
+    sig = (
+    ref1_file.name,
+    ref1_file.size,
+    hash(ref1_file.getbuffer().tobytes())
+)
+
 
     if st.session_state.ref1_file_sig != sig:
-        st.session_state.ref1_image = compress_upload_image(
-            Image.open(ref1_file), upload_quality
-        )
-        st.session_state.ref1_file_sig = sig
+        img = Image.open(ref1_file)
+
+        if disable_compression:
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            st.info("⚡ Compression disabled for Choli reference")
+        else:
+            img = compress_upload_image(img, upload_quality)
+    st.session_state.ref1_image = img
+    st.session_state.ref1_file_sig = sig
 
     ref1_image = st.session_state.ref1_image
 else:
@@ -560,13 +581,23 @@ else:
 ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
 
 if ref2_file:
-    sig = (ref2_file.name, ref2_file.size)
+    sig = (
+    ref2_file.name,
+    ref2_file.size,
+    hash(ref2_file.getbuffer().tobytes())
+)
+
 
     if st.session_state.ref2_file_sig != sig:
-        st.session_state.ref2_image = compress_upload_image(
-            Image.open(ref2_file), upload_quality
-        )
-        st.session_state.ref2_file_sig = sig
+        img = Image.open(ref2_file)
+
+        if disable_compression:
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            st.info("⚡ Compression disabled for Lehenga reference")
+        else:
+            img = compress_upload_image(img, upload_quality)
+    st.session_state.ref2_image = img
+    st.session_state.ref2_file_sig = sig
 
     ref2_image = st.session_state.ref2_image
 else:
