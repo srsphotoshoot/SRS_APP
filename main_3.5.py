@@ -16,7 +16,6 @@ st.set_page_config(
     page_icon="logo/2.png",
     layout="wide"
 )
-
 # ==================================================
 # LOGO
 # ==================================================
@@ -26,7 +25,6 @@ try:
     st.sidebar.divider()
 except Exception as e:
     st.sidebar.warning(f"⚠️ Could not load logo: {str(e)}")
-
 # ==================================================
 # GEMINI CONFIG
 # ==================================================
@@ -34,9 +32,7 @@ GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 if not GEMINI_API_KEY:
     st.error("❌ GOOGLE_API_KEY missing in Streamlit secrets.")
     st.stop()
-
 MODEL_NAME = "gemini-3-pro-image-preview"
-
 # ==================================================
 # SESSION STATE
 # ==================================================
@@ -46,14 +42,10 @@ st.session_state.setdefault("final_prompt", "")
 st.session_state.setdefault("confirm_redirect", False)
 st.session_state.setdefault("main_image", None)
 st.session_state.setdefault("main_file_sig", None)
-
 st.session_state.setdefault("ref1_image", None)
 st.session_state.setdefault("ref1_file_sig", None)
-
 st.session_state.setdefault("ref2_image", None)
 st.session_state.setdefault("ref2_file_sig", None)
-
-
 # ==================================================
 # IMAGE UTILS
 # ==================================================
