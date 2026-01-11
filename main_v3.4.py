@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from io import BytesIO
 import base64
 import traceback
@@ -13,20 +13,18 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 # ==================================================
 st.set_page_config(
     page_title="SRS – Strict Replication Try-On",
-    page_icon="logo/1.png",
+    page_icon="logo/2.png",
     layout="wide"
 )
-
 # ==================================================
 # LOGO
 # ==================================================
 try:
-    logo = Image.open("logo/1.png")
+    logo = Image.open("logo/2.png")
     st.sidebar.image(logo, width=200)
     st.sidebar.divider()
 except Exception as e:
     st.sidebar.warning(f"⚠️ Could not load logo: {str(e)}")
-
 # ==================================================
 # GEMINI CONFIG
 # ==================================================
@@ -34,25 +32,26 @@ GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 if not GEMINI_API_KEY:
     st.error("❌ GOOGLE_API_KEY missing in Streamlit secrets.")
     st.stop()
-
 MODEL_NAME = "gemini-3-pro-image-preview"
-
 # ==================================================
 # SESSION STATE
 # ==================================================
 st.session_state.setdefault("last_generated_image", None)
 st.session_state.setdefault("retry_mode", False)
 st.session_state.setdefault("final_prompt", "")
-
+st.session_state.setdefault("confirm_redirect", False)
+st.session_state.setdefault("main_image", None)
+st.session_state.setdefault("main_file_sig", None)
+st.session_state.setdefault("ref1_image", None)
+st.session_state.setdefault("ref1_file_sig", None)
+st.session_state.setdefault("ref2_image", None)
+st.session_state.setdefault("ref2_file_sig", None)
 # ==================================================
 # IMAGE UTILS
 # ==================================================
-def image_size_mb(img):
-    buf = BytesIO()
-    img.save(buf, format="JPEG", quality=95)
-    return round(buf.tell() / (1024 * 1024), 2)
 
 def compress_upload_image(img, upload_quality):
+    img= ImageOps.exif_transpose(img)   
     img = img.convert("RGB")
 
     MAX_DIM = 2048
@@ -122,7 +121,41 @@ def compress_upload_image(img, upload_quality):
     st.warning(f"⚠️ Image size: {size_mb} MB | Quality: 95%")
     buf.seek(0)
     return Image.open(buf)
+#------------------------------------------------------------------
+#auto compresor based on size and resolution added 11th june
+#------------------------------------------------------------------
+def auto_process_image(img, uploaded_file, upload_quality, label="Image"):
+    img = ImageOps.exif_transpose(img).convert("RGB")
 
+    size_mb = uploaded_file.size / (1024 * 1024)
+    w, h = img.size
+    dpi = img.info.get("dpi", (72,))[0]
+
+    needs_compression = False
+    reasons = []
+
+    if size_mb > 1.5:
+        needs_compression = True
+        reasons.append("file size")
+
+    if max(w, h) > 2048:
+        needs_compression = True
+        reasons.append("high resolution")
+
+    if dpi >= 300 and size_mb < 3:
+        needs_compression = False
+        reasons = ["professional image"]
+
+    if needs_compression:
+        st.info(f"🔧 Auto-compressing {label} ({', '.join(reasons)})")
+        img = compress_upload_image(img, upload_quality)
+    else:
+        st.success(f"✅ {label} kept original quality ({', '.join(reasons)})")
+
+    return img
+# ==================================================
+# PART CONVERSION
+# ==================================================
 def pil_image_to_part(img):
     buf = BytesIO()
     img.save(buf, format="PNG")
@@ -161,6 +194,7 @@ def safe_open_image(img_bytes):
 # GARMENT-AWARE PROMPTS
 # ==================================================
 BASE_PROMPT_MAP = {
+    "Normal Mode": "Generate a photorealistic image of a professional Indian fashion model wearing this exact dress outfit. Simply add a human model body to the dress - do NOT modify any aspect of the garment.",
     "Printed Lehenga": "Generate a photorealistic image of a professional Indian fashion model wearing this EXACT PRINTED LEHENGA outfit.",
     "Heavy Lehenga": "Generate a photorealistic image of a professional Indian fashion model wearing this EXACT HEAVY LEHENGA outfit.",
     "Western Dress": "Generate a photorealistic image of a professional Indian fashion model wearing this EXACT WESTERN DRESS outfit.",
@@ -171,6 +205,18 @@ BASE_PROMPT_MAP = {
 }
 
 LOCKED_REGION_MAP = {
+    "Normal Mode": """
+LOCKED REGIONS (ABSOLUTE - DO NOT MODIFY):
+- Entire Dress Structure
+- All Seams and Construction
+- Embroidery and Patterns (if any)
+- Fabric Texture and Weave
+- All Geometric Details
+- Border and Hem Details
+- Dupatta (if present)
+- ANY and ALL dress components
+ONLY add human body to the dress without ANY modifications.
+""",
     "Printed Lehenga": """
 LOCKED REGIONS (HIGHEST PRIORITY):
 - Shoulder
@@ -247,14 +293,25 @@ def get_dupatta_prompt(dress_type):
         return DUPATTA_LOCK_PROMPT
     return ""
 
-DRESS_BACKGROUND_MAP = {
-    "Printed Lehenga": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
+# ==================================================
+# COLOR EXTRACTION FROM PROMPTS
+# ==================================================
+BACKGROUND_COLOR_OPTIONS = {
+    "Normal Mode": ["studio white", "studio grey", "studio beige"],
+    "Printed Lehenga": ["royal grey", "royal brown", "royal cream"],
+    "Heavy Lehenga": ["royal outdoor", "royal indian fort", "royal palace"],
+    "Western Dress": ["royal grey", "royal brown", "royal cream"],
+    "Indo-Western": ["royal outdoor", "royal indian fort", "royal palace"],
+    "Gown": ["royal outdoor", "royal indian fort", "royal palace"],
+    "Saree": ["royal grey", "royal brown", "royal cream"],
+    "Plazo-set": ["royal grey", "royal brown", "royal cream"]
+}
+
+# Background descriptions for ornate/outdoor backgrounds
+ORNATE_BACKGROUND_DESCRIPTIONS = {
     "Heavy Lehenga": "BACKGROUND: Royal outdoor background with ornate settings.",
-    "Western Dress": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
     "Indo-Western": "BACKGROUND: Royal outdoor background with contemporary elegance.",
-    "Gown": "BACKGROUND: Elegant outdoor background with sophisticated ambiance.",
-    "Saree": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream).",
-    "Plazo-set": "BACKGROUND: Plain simple background (royal grey, royal brown, or royal cream)."
+    "Gown": "BACKGROUND: Elegant outdoor background with sophisticated ambiance."
 }
 
 POSE_PROMPTS = {
@@ -267,33 +324,191 @@ POSE_PROMPTS = {
 # ==================================================
 # FINAL PROMPT BUILDER
 # ==================================================
-def build_final_prompt(dress_type, blouse_color, lehenga_color, dupatta_color, pose_style):
+def build_final_prompt(
+    dress_type,
+    blouse_color,
+    lehenga_color,
+    dupatta_color,
+    background_color,
+    pose_style
+):
+    # --------------------------------------------------
+    # BACKGROUND SELECTION
+    # --------------------------------------------------
+    if dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
+        background_prompt = ORNATE_BACKGROUND_DESCRIPTIONS[dress_type]
+    else:
+        background_prompt = f"BACKGROUND: Plain simple studio background ({background_color})."
+
+    # --------------------------------------------------
+    # NORMAL MODE SPECIAL HANDLING
+    # --------------------------------------------------
+    if dress_type == "Normal Mode":
+        return (
+            BASE_PROMPT_MAP[dress_type]
+            + """
+
+MODEL SPECIFICATION (MANDATORY):
+- Adult Indian female fashion model
+- Neutral body proportions
+- Standard runway posture
+- Studio photoshoot lighting
+- No stylization, no glamour exaggeration
+"""
+
+            + """
+MANNEQUIN-TO-MODEL TRANSFER (ABSOLUTE PRIORITY):
+- Source image shows a MANNEQUIN or dress form, not a human
+- Garment MUST be transferred onto a REAL HUMAN MODEL
+This is a garment-to-body projection task with strict visual preservation
+- Preserve EVERY SINGLE detail:
+  * All stitches and seams
+  * All embroidery and embellishments
+  * All geometric curves and drape
+  * All patterns and prints
+  * All colors and textures
+  * All borders and hems
+  * The entire silhouette exactly as is
+- Minor geometric adjustment is allowed ONLY where physically unavoidable to fit a human body
+- Adjustments must NOT be noticeable to a human observer
+
+- Adjust ONLY for natural human anatomy and gravity fitting
+- This is a BODY ADDITION task, not a design modification task
+""" 
++ """DUPATTA POSITION & LENGTH LOCK (CRITICAL):
+- If a dupatta is visible in the reference image, it MUST be preserved exactly
+- Preserve the SAME dupatta length relative to the garment
+- Preserve the SAME visible coverage (front / side / back)
+- If the dupatta is:
+  * Half visible → keep it half visible
+  * Only at the back → keep it only at the back
+  * Folded or draped asymmetrically → preserve the asymmetry
+- Do NOT extend, shorten, reposition, or re-drape the dupatta
+- Do NOT bring the dupatta to the front if it is not visible in front
+- Do NOT “complete” or “beautify” missing sections
+- Treat the dupatta as a fixed spatial object, not a styling element
+"""
+
+            + """
+CRITICAL - ABSOLUTELY FORBIDDEN (VIOLATION = FAIL):
+- Do NOT redesign any part of the dress
+- Do NOT beautify or enhance anything
+- Do NOT correct any asymmetry
+- Do NOT modify embroidery or patterns
+- Do NOT hallucinate missing details
+- Do NOT add or remove any garment component
+- Do NOT change any colors
+- Do NOT alter fabric texture or weight
+- Do NOT change the silhouette or fit
+- Do NOT modify seams, hems, or borders
+- This is a body-projection task with minimal unavoidable physical fitting only
+
+"""
+
+            + LOCKED_REGION_MAP[dress_type]
+            + "\n"
+            + background_prompt
+            + "\n"
+            + POSE_PROMPTS[pose_style]
+        )
+
+    # --------------------------------------------------
+    # STANDARD MODE (Original logic for other dress types)
+    # --------------------------------------------------
     return (
+        # ===============================
+        # CORE GENERATION INTENT
+        # ===============================
         BASE_PROMPT_MAP[dress_type]
-        + "\n\nFORBIDDEN ACTIONS:\n"
-          "- Do NOT redesign\n"
-          "- Do NOT beautify\n"
-          "- Do NOT correct symmetry\n"
-          "- Do NOT enhance embroidery\n"
-          "- Do NOT hallucinate missing details\n"
+        + """
+
+MODEL SPECIFICATION (MANDATORY):
+- Adult Indian female fashion model
+- Neutral body proportions
+- Standard runway posture
+- Studio photoshoot lighting
+- No stylization, no glamour exaggeration
+"""
+
+        # ===============================
+        # MANNEQUIN → MODEL TRANSFER
+        # ===============================
+        + """
+MANNEQUIN-TO-MODEL TRANSFER (CRITICAL):
+- Source image shows a MANNEQUIN, not a human
+- Garment MUST be transferred onto a REAL HUMAN MODEL
+- Preserve original garment geometry and proportions
+- Adjust ONLY for natural human anatomy and gravity
+- Do NOT alter cut, seams, flare, or embroidery layout
+- Blouse fit must follow mannequin reference exactly
+- Lehenga flare, fall, and volume must remain unchanged
+"""
+
+        # ===============================
+        # FORBIDDEN ACTIONS
+        # ===============================
+        + """
+FORBIDDEN ACTIONS (ABSOLUTE):
+- Do NOT redesign
+- Do NOT beautify
+- Do NOT correct symmetry
+- Do NOT enhance embroidery
+- Do NOT hallucinate missing details
+- Do NOT add accessories or jewelry
+- Do NOT remove any visible garment component
+"""
+
+        # ===============================
+        # LOCKED REGIONS
+        # ===============================
         + LOCKED_REGION_MAP[dress_type]
+
+        # ===============================
+        # DUPATTA ENFORCEMENT
+        # ===============================
         + get_dupatta_prompt(dress_type)
         + """
-GARMENT CLASS LOCK (ABSOLUTE):
-- DO NOT reinterpret gowns or indo-western outfits as lehengas
-- DO NOT add dupatta unless present in reference
+DUPATTA PRESENCE RULE:
+- IF dupatta is visible in the reference image, it MUST be present in the output
+- Dupatta drape must match reference placement and length
 """
+
+        # ===============================
+        # GARMENT CLASS SAFETY
+        # ===============================
+        + """
+GARMENT CLASS LOCK (ABSOLUTE):
+- DO NOT reinterpret lehengas as gowns or dresses
+- DO NOT reinterpret gowns or indo-western outfits as lehengas
+- DO NOT add a dupatta if it does NOT exist in reference
+"""
+
+        # ===============================
+        # COLOR LOCKS
+        # ===============================
         + f"""
 HIGH-PRIORITY COLOR LOCK (HEX):
-Blouse: {blouse_color}
-Lehenga: {lehenga_color}
-Dupatta: {dupatta_color}
+- Blouse: {blouse_color}
+- Lehenga: {lehenga_color}
+- Dupatta: {dupatta_color}
 """
-        + "\nABSOLUTE CONSTRAINTS:\n"
-          "- Pixel-adjacent replication only\n"
-          "- Background must NOT affect garment colors or shape\n"
+
+        # ===============================
+        # PHYSICAL & PIXEL CONSTRAINTS
+        # ===============================
+        + """
+ABSOLUTE CONSTRAINTS:
+- Visual identity replication (viewer must perceive the same product)
+- Background must NOT affect garment colors
+- Lighting must NOT wash out embroidery
+- No motion, no wind, no fabric lift
+"""
+
+        # ===============================
+        # BACKGROUND & POSE
+        # ===============================
         + "\n"
-        + DRESS_BACKGROUND_MAP[dress_type]
+        + background_prompt
         + "\n"
         + POSE_PROMPTS[pose_style]
     )
@@ -305,9 +520,11 @@ st.title("SRS – Strict Replication Try-On")
 
 with st.sidebar:
     upload_quality = st.slider("Upload Image Quality", 60, 95, 85)
+   # disable_compression = st.toggle("🚫 Disable Image Compression", value=False) 11 january   
     generation_resolution = st.selectbox("Generation Resolution", ["1K", "2K", "4K"], index=1)
     aspect_ratio = st.selectbox("Aspect Ratio", ["1:1", "2:3", "3:4", "4:5", "9:16"], index=2)
     dress_type = st.selectbox("Dress Type", [
+        "Normal Mode",
         "Printed Lehenga",
         "Heavy Lehenga",
         "Western Dress",
@@ -322,28 +539,131 @@ with st.sidebar:
 # ==================================================
 # IMAGE INPUTS
 # ==================================================
-col1, col2 = st.columns(2)
+st.subheader("📸 Main Image")
+main_file = st.file_uploader(
+    "Upload Main Image",
+    ["jpg", "jpeg", "png"],
+    key="main_image_uploader"
+)
+if main_file:
+    sig = (
+    main_file.name,
+    main_file.size,
+    hash(main_file.getbuffer().tobytes())
+)
 
-with col1:
-    main_file = st.file_uploader("Upload Main Image", ["jpg", "jpeg", "png"])
-    main_image = compress_upload_image(Image.open(main_file), upload_quality) if main_file else None
-    if main_image:
-        st.image(main_image, width="stretch")
 
-with col2:
-    ref1_file = st.file_uploader("Upload Choli Reference", ["jpg", "jpeg", "png"])
-    ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
-    ref1_image = compress_upload_image(Image.open(ref1_file), upload_quality) if ref1_file else None
-    ref2_image = compress_upload_image(Image.open(ref2_file), upload_quality) if ref2_file else None
+    if st.session_state.main_file_sig != sig:
+        img = Image.open(main_file)
+
+        img = auto_process_image(
+        img,
+        main_file,
+        upload_quality,
+        label="Main Image"
+        )
+
+        st.session_state.main_image = img
+        st.session_state.main_file_sig = sig
+
+
+    main_image = st.session_state.main_image
+else:
+    main_image = None
+    st.session_state.main_file_sig = None
+    st.session_state.main_image = None
+
+if main_image:
+    st.image(main_image, width="stretch")
+
+st.subheader("📚 Reference Images")
+ref1_file = st.file_uploader(
+    "Upload Choli Reference",
+    ["jpg", "jpeg", "png"],
+    key="choli_ref_uploader"
+)
+if ref1_file:
+    sig = (
+        ref1_file.name,
+        ref1_file.size,
+        hash(ref1_file.getbuffer().tobytes())
+    )
+
+    if st.session_state.ref1_file_sig != sig:
+        img = Image.open(ref1_file)
+
+        img = auto_process_image(
+    img,
+    ref1_file,
+    upload_quality,
+    label="Choli Reference"
+)
+
+
+        st.session_state.ref1_image = img
+        st.session_state.ref1_file_sig = sig
+
+    ref1_image = st.session_state.ref1_image
+else:
+    ref1_image = None
+    st.session_state.ref1_image = None
+    st.session_state.ref1_file_sig = None
+
+
+ref2_file = st.file_uploader(
+    "Upload Lehenga Reference",
+    ["jpg", "jpeg", "png"],
+    key="lehenga_ref_uploader"
+)
+if ref2_file:
+    sig = (
+        ref2_file.name,
+        ref2_file.size,
+        hash(ref2_file.getbuffer().tobytes())
+    )
+
+    if st.session_state.ref2_file_sig != sig:
+        img = Image.open(ref2_file)
+
+        img = auto_process_image(
+    img,
+    ref2_file,
+    upload_quality,
+    label="Lehenga Reference"
+)
+
+
+        st.session_state.ref2_image = img
+        st.session_state.ref2_file_sig = sig
+
+    ref2_image = st.session_state.ref2_image
+else:
+    ref2_image = None
+    st.session_state.ref2_image = None
+    st.session_state.ref2_file_sig = None
+
+# ==================================================
+# BACKGROUND COLOR SELECTOR (DROPDOWN)
+# ==================================================
+available_bg_colors = BACKGROUND_COLOR_OPTIONS.get(dress_type, ["royal grey"])
+background_color_selected = st.selectbox("Select Background Color", available_bg_colors)
+background_color = background_color_selected  # Store for prompt
 
 # ==================================================
 # COLOR PICKER (PIXEL-ACCURATE)
 # ==================================================
 blouse_color = lehenga_color = dupatta_color = "#FFFFFF"
-
-if color_mode == "Manual (Dropper)" and main_image:
+if color_mode == "Manual (Dropper)" and main_image is not None:
     st.subheader("🎯 Manual Color Picker")
-    coords = streamlit_image_coordinates(main_image, key="picker", use_column_width=True)
+    st.info("💡 Enable the picker and click on the image to pick a color")
+
+    # 🔒 Gate picker to prevent rerun/loader issues
+    if st.checkbox("🎯 Enable Color Picker"):
+        coords = streamlit_image_coordinates(main_image, key="picker")
+    else:
+        coords = None
+
+    # 🔍 Process only when a valid click exists
     if coords:
         disp_x, disp_y = int(coords["x"]), int(coords["y"])
         disp_w, disp_h = int(coords["width"]), int(coords["height"])
@@ -358,13 +678,80 @@ if color_mode == "Manual (Dropper)" and main_image:
         r, g, b = main_image.getpixel((real_x, real_y))
         picked_hex = f"#{r:02X}{g:02X}{b:02X}"
 
-        target = st.selectbox("Apply picked color to", ["Blouse", "Lehenga", "Dupatta"])
+        # ==================================================
+        # 🔍 MAGNIFIER & PIXEL VIEW
+        # ==================================================
+        st.markdown("**🔍 Magnified View**")
+
+        mag_size = 20
+        x_start = max(0, real_x - mag_size)
+        x_end = min(orig_w, real_x + mag_size)
+        y_start = max(0, real_y - mag_size)
+        y_end = min(orig_h, real_y + mag_size)
+
+        mag_region = main_image.crop((x_start, y_start, x_end, y_end))
+        mag_region_enlarged = mag_region.resize((300, 300), Image.NEAREST)
+        st.image(mag_region_enlarged, width="stretch")
+
+        # ==================================================
+        # 📊 PIXEL INFORMATION
+        # ==================================================
+        st.markdown("**📊 Pixel Information**")
+
+        swatch = Image.new("RGB", (150, 150), (r, g, b))
+        st.image(swatch, width=150)
+
+        st.markdown(
+            f"""
+            **Picked Color:**
+            - **HEX:** `{picked_hex}`
+            - **RGB:** `({r}, {g}, {b})`
+            - **Position:** `({real_x}, {real_y})`
+            """
+        )
+
+        st.divider()
+
+        # ==================================================
+        # 🎯 APPLY COLOR
+        # ==================================================
+        target = st.selectbox(
+            "Apply picked color to",
+            ["Blouse", "Lehenga", "Dupatta"],
+            key="color_apply_target"
+        )
+
         if target == "Blouse":
             blouse_color = picked_hex
         elif target == "Lehenga":
             lehenga_color = picked_hex
         else:
             dupatta_color = picked_hex
+
+# 🔗 External Redirect Button
+if st.sidebar.button("🔗 FEEDBACK HERE"):
+    st.session_state.confirm_redirect = True
+
+# ⚠️ Confirmation Popup (Streamlit-style)
+if st.session_state.confirm_redirect:
+    st.sidebar.warning("⚠️ Are you sure you want to leave this app?")
+
+    if st.sidebar.button("✅ Yes"):
+        st.markdown(
+    """
+    <a href="https://forms.gle/uJ3NwZKthifgF5Q88"
+       target="_blank"
+       rel="noopener noreferrer">
+       👉 Click here to open the form
+    </a>
+    """,
+    unsafe_allow_html=True
+)
+
+        st.session_state.confirm_redirect = False
+
+    if st.sidebar.button("❌ No"):
+        st.session_state.confirm_redirect = False
 
 # ==================================================
 # FALLBACK GENERATION
@@ -400,7 +787,7 @@ if st.button("🎨 Generate Image") and main_image:
     with st.spinner("Generating image..."):
         try:
             st.session_state.final_prompt = build_final_prompt(
-                dress_type, blouse_color, lehenga_color, dupatta_color, pose_style
+                dress_type, blouse_color, lehenga_color, dupatta_color, background_color, pose_style
             )
 
             parts = [
