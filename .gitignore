@@ -44,3 +44,6 @@ v2.1.py
 testv7.py
 v3.5.py
 ready.py
+DockerFile
+google_dep.py
+*.json
