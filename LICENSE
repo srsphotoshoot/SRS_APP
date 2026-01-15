@@ -1,0 +1,66 @@
+Copyright © 2026 Sonu Kumar
+
+All rights reserved.
+
+1. Ownership
+
+This repository, including but not limited to source code, models, datasets, documentation, configuration files, and all associated intellectual property (“Software”), is the exclusive property of the Author.
+
+No ownership rights are transferred under this License.
+
+2. Grant of License
+
+No license is granted to any individual or entity to use, copy, modify, merge, publish, distribute, sublicense, sell, lease, train derivative models on, or otherwise exploit the Software, in whole or in part, unless explicit written permission is obtained from the Author.
+
+3. Restrictions
+
+The following actions are strictly prohibited without prior written authorization:
+
+Copying or cloning the repository
+
+Modifying or creating derivative works
+
+Using the Software for personal, academic, or commercial purposes
+
+Redistributing the Software or any portion thereof
+
+Using the Software to build, train, enhance, or power another product, service, model, or system
+
+Reverse engineering, decompiling, or disassembling
+
+Publishing results, benchmarks, or outputs derived from the Software
+
+4. Commercial Use
+
+Any commercial use, including but not limited to SaaS products, APIs, internal business tools, paid services, or monetized derivatives, is expressly forbidden without a signed commercial license agreement.
+
+5. No Warranty
+
+The Software is provided “AS IS”, without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.
+
+6. Limitation of Liability
+
+In no event shall the Author be liable for any claim, damages, or other liability arising from the use of or inability to use the Software.
+
+7. Termination
+
+Any violation of this License automatically terminates any permission implied or assumed. Upon termination, all copies of the Software must be destroyed immediately.
+
+8. Legal Enforcement
+
+Unauthorized use of this Software constitutes copyright infringement and may result in civil and criminal penalties under applicable law.
+
+9. Governing Law
+
+This License shall be governed by and construed in accordance with the laws of India, without regard to conflict of law principles.
+
+10. Contact
+
+For licensing inquiries or written permission, contact:
+
+Email: your-email@example.com
+
+⚠️ NOTICE
+
+Viewing this repository does not grant permission to use it.
+If a license file is absent or unclear, assume no rights are granted.
