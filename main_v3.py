@@ -19,11 +19,11 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 # -----------------------
 # Config / Keysf
 # -----------------------
-GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
-FLASH_API_KEY = st.secrets.get("GOOGLE_API_KEY_FLASH", GEMINI_API_KEY)
+GEMINI_API_KEY = st.secrets.get("SRS_KEY")
+FLASH_API_KEY = st.secrets.get("SRS_KEY_FLASH", GEMINI_API_KEY)
 
 if not GEMINI_API_KEY:
-    st.error("API key missing in Streamlit secrets (GOOGLE_API_KEY).")
+    st.error("API key missing in Streamlit secrets (SRS_KEY).")
     st.stop()
 
 MODEL_NAME = "gemini-3-pro-image-preview"

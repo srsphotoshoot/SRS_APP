@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 # Get API Key
-GEMINI_API_KEY = st.secrets.get("GOOGLE_API_KEY")
+GEMINI_API_KEY = st.secrets.get("SRS_KEY")
 if not GEMINI_API_KEY:
     st.error("⚠️ Google API key not found in Streamlit secrets!")
     st.stop()
