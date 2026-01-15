@@ -297,17 +297,31 @@ def get_dupatta_prompt(dress_type):
 # COLOR EXTRACTION FROM PROMPTS
 # ==================================================
 BACKGROUND_COLOR_OPTIONS = {
-    "Normal Mode": ["studio white", "studio grey", "studio beige"],
+    "Normal Mode": ["royal outdoor","royal grey","royal brown","royal cream","royal outdoor garden" ,"fort outdoor","Butique","royal indian fort "],
     "Printed Lehenga": ["royal grey", "royal brown", "royal cream"],
     "Heavy Lehenga": ["royal outdoor", "royal indian fort", "royal palace"],
-    "Western Dress": ["royal grey", "royal brown", "royal cream"],
+    "Western Dress": ["royal grey", "royal brown", "royal cream","butique"],
     "Indo-Western": ["royal outdoor", "royal indian fort", "royal palace"],
     "Gown": ["royal outdoor", "royal indian fort", "royal palace"],
-    "Saree": ["royal grey", "royal brown", "royal cream"],
-    "Plazo-set": ["royal grey", "royal brown", "royal cream"]
+    "Saree": ["royal grey", "royal brown", "royal cream","butique"],
+    "Plazo-set": ["royal grey", "royal brown", "royal cream", "butique"]
 }
 
-# Background descriptions for ornate/outdoor backgrounds
+# Background descriptions mapping
+BACKGROUND_DESCRIPTIONS_MAP = {
+    "royal outdoor": "BACKGROUND: Royal outdoor background with elegant settings.",
+    "royal grey": "BACKGROUND: Plain simple studio background with royal grey.",
+    "royal brown": "BACKGROUND: Plain simple studio background with royal brown.",
+    "royal cream": "BACKGROUND: Plain simple studio background with royal cream.",
+    "inside butique showroom ": "BACKGROUND: Inside boutique showroom with sophisticated ambiance.",
+    "royal outdoor garden": "BACKGROUND: Royal outdoor garden background with natural elegance.",
+    "fort outdoor": "BACKGROUND: Fort outdoor background with royal heritage settings.",
+    "royal indian fort": "BACKGROUND: Royal outdoor background with Indian fort architecture.",
+    "royal palace": "BACKGROUND: Royal outdoor background with palace settings.",
+    "Butique": "BACKGROUND: High-end fashion boutique interior.\n- Neutral luxury palette (beige / ivory / warm grey)\n- Polished stone or marble flooring\n- Soft warm ambient lighting with diffused ceiling spotlights\n- Minimal gold/brass accents\n- Sparse clothing racks far in background\n- Shallow depth-of-field, background softly blurred\n- No mannequins, mirrors, signage, or logos\n- Background must NOT alter garment colors\n"
+}
+
+# Ornate backgrounds for specific dress types (kept for backward compatibility)
 ORNATE_BACKGROUND_DESCRIPTIONS = {
     "Heavy Lehenga": "BACKGROUND: Royal outdoor background with ornate settings.",
     "Indo-Western": "BACKGROUND: Royal outdoor background with contemporary elegance.",
@@ -335,10 +349,15 @@ def build_final_prompt(
     # --------------------------------------------------
     # BACKGROUND SELECTION
     # --------------------------------------------------
-    if dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
+    # First check if there's a specific description for this background color
+    if background_color in BACKGROUND_DESCRIPTIONS_MAP:
+        background_prompt = BACKGROUND_DESCRIPTIONS_MAP[background_color]
+    # Then check if this dress type has ornate background descriptions
+    elif dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
         background_prompt = ORNATE_BACKGROUND_DESCRIPTIONS[dress_type]
+    # Default fallback
     else:
-        background_prompt = f"BACKGROUND: Plain simple studio background ({background_color})."
+        background_prompt = f"BACKGROUND: {background_color}."
 
     # --------------------------------------------------
     # NORMAL MODE SPECIAL HANDLING
