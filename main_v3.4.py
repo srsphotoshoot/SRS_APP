@@ -32,7 +32,7 @@ GEMINI_API_KEY = st.secrets.get("SRS_KEY")
 if not GEMINI_API_KEY:
     st.error("❌ SRS_KEY missing in Streamlit secrets.")
     st.stop()
-MODEL_NAME = "gemini-3-pro-image-preview"
+MODEL_NAME = "gemini-2.5-flash-image"
 # ==================================================
 # SESSION STATE
 # ==================================================
