@@ -1,6 +1,6 @@
 📌 Overview
 
-This repository contains confidential and proprietary software developed and owned exclusively by Sonu Kumar.
+This repository contains confidential and proprietary software developed and owned exclusively by shree radha studio.
 
 The contents of this repository are NOT open source and are NOT free to use.
 
