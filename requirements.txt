@@ -3,3 +3,4 @@ Pillow
 google-genai
 python-dotenv
 scikit-image
+streamlit-image-coordinates
