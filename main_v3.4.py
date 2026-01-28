@@ -30,7 +30,7 @@ except Exception as e:
 # ==================================================
 GEMINI_API_KEY = st.secrets.get("SRS_KEY")
 if not GEMINI_API_KEY:
-    st.error("❌ SRS_KEY missing in Streamlit secrets.")
+    st.error("❌ GOOGLE_API_KEY missing in Streamlit secrets.")
     st.stop()
 MODEL_NAME = "gemini-3-pro-image-preview"
 # ==================================================
@@ -593,7 +593,7 @@ else:
     st.session_state.main_image = None
 
 if main_image:
-    st.image(main_image)
+    st.image(main_image, width="stretch")
 
 st.subheader("📚 Reference Images")
 ref1_file = st.file_uploader(

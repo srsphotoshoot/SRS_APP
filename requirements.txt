@@ -1,8 +1,5 @@
 streamlit
 Pillow
-google-generativeai
-python-dotenv
 google-genai
-streamlit_image_coordinates
-opencv-python-headless
+python-dotenv
 scikit-image
