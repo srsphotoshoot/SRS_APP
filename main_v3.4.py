@@ -593,7 +593,7 @@ else:
     st.session_state.main_image = None
 
 if main_image:
-    st.image(main_image, width="stretch")
+    st.image(main_image)
 
 st.subheader("📚 Reference Images")
 ref1_file = st.file_uploader(

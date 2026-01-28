@@ -49,10 +49,6 @@ st.session_state.setdefault("ref2_file_sig", None)
 # ==================================================
 # IMAGE UTILS
 # ==================================================
-def image_size_mb(img):
-    buf = BytesIO()
-    img.save(buf, format="JPEG", quality=95)
-    return round(buf.tell() / (1024 * 1024), 2)
 
 def compress_upload_image(img, upload_quality):
     img= ImageOps.exif_transpose(img)   
@@ -125,7 +121,41 @@ def compress_upload_image(img, upload_quality):
     st.warning(f"⚠️ Image size: {size_mb} MB | Quality: 95%")
     buf.seek(0)
     return Image.open(buf)
+#------------------------------------------------------------------
+#auto compresor based on size and resolution added 11th june
+#------------------------------------------------------------------
+def auto_process_image(img, uploaded_file, upload_quality, label="Image"):
+    img = ImageOps.exif_transpose(img).convert("RGB")
 
+    size_mb = uploaded_file.size / (1024 * 1024)
+    w, h = img.size
+    dpi = img.info.get("dpi", (72,))[0]
+
+    needs_compression = False
+    reasons = []
+
+    if size_mb > 1.5:
+        needs_compression = True
+        reasons.append("file size")
+
+    if max(w, h) > 2048:
+        needs_compression = True
+        reasons.append("high resolution")
+
+    if dpi >= 300 and size_mb < 3:
+        needs_compression = False
+        reasons = ["professional image"]
+
+    if needs_compression:
+        st.info(f"🔧 Auto-compressing {label} ({', '.join(reasons)})")
+        img = compress_upload_image(img, upload_quality)
+    else:
+        st.success(f"✅ {label} kept original quality ({', '.join(reasons)})")
+
+    return img
+# ==================================================
+# PART CONVERSION
+# ==================================================
 def pil_image_to_part(img):
     buf = BytesIO()
     img.save(buf, format="PNG")
@@ -267,17 +297,31 @@ def get_dupatta_prompt(dress_type):
 # COLOR EXTRACTION FROM PROMPTS
 # ==================================================
 BACKGROUND_COLOR_OPTIONS = {
-    "Normal Mode": ["studio white", "studio grey", "studio beige"],
+    "Normal Mode": ["royal outdoor","royal grey","royal brown","royal cream","royal outdoor garden" ,"fort outdoor","Butique","royal indian fort "],
     "Printed Lehenga": ["royal grey", "royal brown", "royal cream"],
     "Heavy Lehenga": ["royal outdoor", "royal indian fort", "royal palace"],
-    "Western Dress": ["royal grey", "royal brown", "royal cream"],
+    "Western Dress": ["royal grey", "royal brown", "royal cream","butique"],
     "Indo-Western": ["royal outdoor", "royal indian fort", "royal palace"],
     "Gown": ["royal outdoor", "royal indian fort", "royal palace"],
-    "Saree": ["royal grey", "royal brown", "royal cream"],
-    "Plazo-set": ["royal grey", "royal brown", "royal cream"]
+    "Saree": ["royal grey", "royal brown", "royal cream","butique"],
+    "Plazo-set": ["royal grey", "royal brown", "royal cream", "butique"]
 }
 
-# Background descriptions for ornate/outdoor backgrounds
+# Background descriptions mapping
+BACKGROUND_DESCRIPTIONS_MAP = {
+    "royal outdoor": "BACKGROUND: Royal outdoor background with elegant settings.",
+    "royal grey": "BACKGROUND: Plain simple studio background with royal grey.",
+    "royal brown": "BACKGROUND: Plain simple studio background with royal brown.",
+    "royal cream": "BACKGROUND: Plain simple studio background with royal cream.",
+    "inside butique showroom ": "BACKGROUND: Inside boutique showroom with sophisticated ambiance.",
+    "royal outdoor garden": "BACKGROUND: Royal outdoor garden background with natural elegance.",
+    "fort outdoor": "BACKGROUND: Fort outdoor background with royal heritage settings.",
+    "royal indian fort": "BACKGROUND: Royal outdoor background with Indian fort architecture.",
+    "royal palace": "BACKGROUND: Royal outdoor background with palace settings.",
+    "Butique": "BACKGROUND: High-end fashion boutique interior.\n- Neutral luxury palette (beige / ivory / warm grey)\n- Polished stone or marble flooring\n- Soft warm ambient lighting with diffused ceiling spotlights\n- Minimal gold/brass accents\n- Sparse clothing racks far in background\n- Shallow depth-of-field, background softly blurred\n- No mannequins, mirrors, signage, or logos\n- Background must NOT alter garment colors\n"
+}
+
+# Ornate backgrounds for specific dress types (kept for backward compatibility)
 ORNATE_BACKGROUND_DESCRIPTIONS = {
     "Heavy Lehenga": "BACKGROUND: Royal outdoor background with ornate settings.",
     "Indo-Western": "BACKGROUND: Royal outdoor background with contemporary elegance.",
@@ -305,10 +349,15 @@ def build_final_prompt(
     # --------------------------------------------------
     # BACKGROUND SELECTION
     # --------------------------------------------------
-    if dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
+    # First check if there's a specific description for this background color
+    if background_color in BACKGROUND_DESCRIPTIONS_MAP:
+        background_prompt = BACKGROUND_DESCRIPTIONS_MAP[background_color]
+    # Then check if this dress type has ornate background descriptions
+    elif dress_type in ORNATE_BACKGROUND_DESCRIPTIONS:
         background_prompt = ORNATE_BACKGROUND_DESCRIPTIONS[dress_type]
+    # Default fallback
     else:
-        background_prompt = f"BACKGROUND: Plain simple studio background ({background_color})."
+        background_prompt = f"BACKGROUND: {background_color}."
 
     # --------------------------------------------------
     # NORMAL MODE SPECIAL HANDLING
@@ -490,7 +539,7 @@ st.title("SRS – Strict Replication Try-On")
 
 with st.sidebar:
     upload_quality = st.slider("Upload Image Quality", 60, 95, 85)
-    disable_compression = st.toggle("🚫 Disable Image Compression", value=False)
+   # disable_compression = st.toggle("🚫 Disable Image Compression", value=False) 11 january   
     generation_resolution = st.selectbox("Generation Resolution", ["1K", "2K", "4K"], index=1)
     aspect_ratio = st.selectbox("Aspect Ratio", ["1:1", "2:3", "3:4", "4:5", "9:16"], index=2)
     dress_type = st.selectbox("Dress Type", [
@@ -510,8 +559,11 @@ with st.sidebar:
 # IMAGE INPUTS
 # ==================================================
 st.subheader("📸 Main Image")
-main_file = st.file_uploader("Upload Main Image", ["jpg", "jpeg", "png"])
-
+main_file = st.file_uploader(
+    "Upload Main Image",
+    ["jpg", "jpeg", "png"],
+    key="main_image_uploader"
+)
 if main_file:
     sig = (
     main_file.name,
@@ -523,11 +575,13 @@ if main_file:
     if st.session_state.main_file_sig != sig:
         img = Image.open(main_file)
 
-        if disable_compression:
-            img = ImageOps.exif_transpose(img).convert("RGB")
-            st.info("⚡ Compression disabled - using original image")
-        else:
-            img = compress_upload_image(img, upload_quality)
+        img = auto_process_image(
+        img,
+        main_file,
+        upload_quality,
+        label="Main Image"
+        )
+
         st.session_state.main_image = img
         st.session_state.main_file_sig = sig
 
@@ -539,11 +593,14 @@ else:
     st.session_state.main_image = None
 
 if main_image:
-    st.image(main_image, width="stretch")
+    st.image(main_image)
 
 st.subheader("📚 Reference Images")
-ref1_file = st.file_uploader("Upload Choli Reference", ["jpg", "jpeg", "png"])
-
+ref1_file = st.file_uploader(
+    "Upload Choli Reference",
+    ["jpg", "jpeg", "png"],
+    key="choli_ref_uploader"
+)
 if ref1_file:
     sig = (
         ref1_file.name,
@@ -554,11 +611,13 @@ if ref1_file:
     if st.session_state.ref1_file_sig != sig:
         img = Image.open(ref1_file)
 
-        if disable_compression:
-            img = ImageOps.exif_transpose(img).convert("RGB")
-            st.info("⚡ Compression disabled for Choli reference")
-        else:
-            img = compress_upload_image(img, upload_quality)
+        img = auto_process_image(
+    img,
+    ref1_file,
+    upload_quality,
+    label="Choli Reference"
+)
+
 
         st.session_state.ref1_image = img
         st.session_state.ref1_file_sig = sig
@@ -570,7 +629,11 @@ else:
     st.session_state.ref1_file_sig = None
 
 
-ref2_file = st.file_uploader("Upload Lehenga Reference", ["jpg", "jpeg", "png"])
+ref2_file = st.file_uploader(
+    "Upload Lehenga Reference",
+    ["jpg", "jpeg", "png"],
+    key="lehenga_ref_uploader"
+)
 if ref2_file:
     sig = (
         ref2_file.name,
@@ -581,11 +644,13 @@ if ref2_file:
     if st.session_state.ref2_file_sig != sig:
         img = Image.open(ref2_file)
 
-        if disable_compression:
-            img = ImageOps.exif_transpose(img).convert("RGB")
-            st.info("⚡ Compression disabled for Lehenga reference")
-        else:
-            img = compress_upload_image(img, upload_quality)
+        img = auto_process_image(
+    img,
+    ref2_file,
+    upload_quality,
+    label="Lehenga Reference"
+)
+
 
         st.session_state.ref2_image = img
         st.session_state.ref2_file_sig = sig
@@ -607,11 +672,17 @@ background_color = background_color_selected  # Store for prompt
 # COLOR PICKER (PIXEL-ACCURATE)
 # ==================================================
 blouse_color = lehenga_color = dupatta_color = "#FFFFFF"
-
 if color_mode == "Manual (Dropper)" and main_image is not None:
     st.subheader("🎯 Manual Color Picker")
-    st.info("💡 Click on the image to pick a color")
-    coords = streamlit_image_coordinates(main_image, key="picker")
+    st.info("💡 Enable the picker and click on the image to pick a color")
+
+    # 🔒 Gate picker to prevent rerun/loader issues
+    if st.checkbox("🎯 Enable Color Picker"):
+        coords = streamlit_image_coordinates(main_image, key="picker")
+    else:
+        coords = None
+
+    # 🔍 Process only when a valid click exists
     if coords:
         disp_x, disp_y = int(coords["x"]), int(coords["y"])
         disp_w, disp_h = int(coords["width"]), int(coords["height"])
@@ -627,41 +698,55 @@ if color_mode == "Manual (Dropper)" and main_image is not None:
         picked_hex = f"#{r:02X}{g:02X}{b:02X}"
 
         # ==================================================
-        # MAGNIFIER & PIXEL VIEW
+        # 🔍 MAGNIFIER & PIXEL VIEW
         # ==================================================
         st.markdown("**🔍 Magnified View**")
-        # Extract a region around the picked pixel (20x20 area)
+
         mag_size = 20
         x_start = max(0, real_x - mag_size)
         x_end = min(orig_w, real_x + mag_size)
         y_start = max(0, real_y - mag_size)
         y_end = min(orig_h, real_y + mag_size)
-        
+
         mag_region = main_image.crop((x_start, y_start, x_end, y_end))
         mag_region_enlarged = mag_region.resize((300, 300), Image.NEAREST)
-        st.image(mag_region_enlarged, width ="stretch")
-        
+        st.image(mag_region_enlarged, width="stretch")
+
+        # ==================================================
+        # 📊 PIXEL INFORMATION
+        # ==================================================
         st.markdown("**📊 Pixel Information**")
-        # Create a color swatch
+
         swatch = Image.new("RGB", (150, 150), (r, g, b))
         st.image(swatch, width=150)
-        
-        st.markdown(f"""
-        **Picked Color:**
-        - **HEX:** `{picked_hex}`
-        - **RGB:** `({r}, {g}, {b})`
-        - **Position:** `({real_x}, {real_y})`
-        """)
-        
+
+        st.markdown(
+            f"""
+            **Picked Color:**
+            - **HEX:** `{picked_hex}`
+            - **RGB:** `({r}, {g}, {b})`
+            - **Position:** `({real_x}, {real_y})`
+            """
+        )
+
         st.divider()
 
-        target = st.selectbox("Apply picked color to", ["Blouse", "Lehenga", "Dupatta"])
+        # ==================================================
+        # 🎯 APPLY COLOR
+        # ==================================================
+        target = st.selectbox(
+            "Apply picked color to",
+            ["Blouse", "Lehenga", "Dupatta"],
+            key="color_apply_target"
+        )
+
         if target == "Blouse":
             blouse_color = picked_hex
         elif target == "Lehenga":
             lehenga_color = picked_hex
         else:
             dupatta_color = picked_hex
+
 # 🔗 External Redirect Button
 if st.sidebar.button("🔗 FEEDBACK HERE"):
     st.session_state.confirm_redirect = True
