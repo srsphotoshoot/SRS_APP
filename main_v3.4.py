@@ -329,10 +329,10 @@ ORNATE_BACKGROUND_DESCRIPTIONS = {
 }
 
 POSE_PROMPTS = {
-    "Natural Standing": "POSE: Natural upright standing pose.",
-    "Soft Fashion": "POSE: Slight hip shift, relaxed arms.",
-    "Editorial": "POSE: Editorial fashion pose.",
-    "Walk": "POSE: Mild walking stance."
+    "Natural Standing": "strict POSE: Natural upright standing pose(strictly wanted).",
+    "Soft Fashion": "strict POSE: Slight hip shift, relaxed arms (strictly wanted).",
+    "Editorial": "strict POSE: Editorial fashion pose (strictly wanted).",
+    "Walk": "strict POSE: Mild walking stance (strictly wanted)."
 }
 
 # ==================================================
