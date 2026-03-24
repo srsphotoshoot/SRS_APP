@@ -329,10 +329,15 @@ ORNATE_BACKGROUND_DESCRIPTIONS = {
 }
 
 POSE_PROMPTS = {
-    "Natural Standing": "strict POSE: Natural upright standing pose(strictly wanted).",
-    "Soft Fashion": "strict POSE: Slight hip shift, relaxed arms (strictly wanted).",
-    "Editorial": "strict POSE: Editorial fashion pose (strictly wanted).",
-    "Walk": "strict POSE: Mild walking stance (strictly wanted)."
+    "Natural Standing": "Natural upright standing pose with a confident yet relaxed posture.",
+    "Soft Fashion": "Soft fashion pose with a slight hip shift and relaxed, elegant arm placement.",
+    "Editorial": "High-fashion editorial pose with dynamic body angles, creating a sophisticated silhouette.",
+    "Walk": "Captured in a mild walking stance, showing natural leg movement and fabric drape.",
+    "Dupatta Flow Pose": "Dynamic pose with a gentle dupatta flow, showing the fabric's movement as if in a soft breeze.",
+    "Front Open Stance": "Front-facing open stance with feet slightly apart, clearly showcasing the entire garment's front details.",
+    "Runway Pause Pose": "Classic runway pause at the end of a walk, with weight shifted to one hip and a poised stance.",
+    "Asymmetrical Arm Pose": "Modern asymmetrical pose with varied arm placements for strong visual interest.",
+    "Soft Motion Pose": "A pose conveying soft motion or a gentle turn, creating rhythmic folds and life in the garment."
 }
 
 # ==================================================
@@ -346,6 +351,12 @@ def build_final_prompt(
     background_color,
     pose_style
 ):
+    pose_description = POSE_PROMPTS.get(pose_style, "Standard runway posture")
+    
+    # Check if pose involves motion
+    is_motion_pose = pose_style in ["Walk", "Dupatta Flow Pose", "Soft Motion Pose"]
+    motion_constraint = "Minimal natural motion allowed to support the requested pose." if is_motion_pose else "No motion, no wind, no fabric lift."
+
     # --------------------------------------------------
     # BACKGROUND SELECTION
     # --------------------------------------------------
@@ -365,12 +376,12 @@ def build_final_prompt(
     if dress_type == "Normal Mode":
         return (
             BASE_PROMPT_MAP[dress_type]
-            + """
-
+            + f"""
 MODEL SPECIFICATION (MANDATORY):
 - Adult Indian female fashion model
 - Neutral body proportions
-- Standard runway posture
+- strict POSE: {pose_description}
+- EXPRESSION: Add natural expressions smile
 - Studio photoshoot lighting
 - No stylization, no glamour exaggeration
 """
@@ -424,11 +435,16 @@ CRITICAL - ABSOLUTELY FORBIDDEN (VIOLATION = FAIL):
 
 """
 
+            + f"""
+ABSOLUTE CONSTRAINTS:
+- Visual identity replication (viewer must perceive the same product)
+- Background must NOT affect garment colors
+- Lighting must NOT wash out embroidery
+- {motion_constraint}
+"""
             + LOCKED_REGION_MAP[dress_type]
             + "\n"
             + background_prompt
-            + "\n"
-            + POSE_PROMPTS[pose_style]
         )
 
     # --------------------------------------------------
@@ -439,12 +455,12 @@ CRITICAL - ABSOLUTELY FORBIDDEN (VIOLATION = FAIL):
         # CORE GENERATION INTENT
         # ===============================
         BASE_PROMPT_MAP[dress_type]
-        + """
-
+        + f"""
 MODEL SPECIFICATION (MANDATORY):
 - Adult Indian female fashion model
 - Neutral body proportions
-- Standard runway posture
+- strict POSE: {pose_description}
+- EXPRESSION: Add natural expressions smile
 - Studio photoshoot lighting
 - No stylization, no glamour exaggeration
 """
@@ -520,16 +536,14 @@ ABSOLUTE CONSTRAINTS:
 - Visual identity replication (viewer must perceive the same product)
 - Background must NOT affect garment colors
 - Lighting must NOT wash out embroidery
-- No motion, no wind, no fabric lift
+- {motion_constraint}
 """
 
         # ===============================
-        # BACKGROUND & POSE
+        # BACKGROUND
         # ===============================
         + "\n"
         + background_prompt
-        + "\n"
-        + POSE_PROMPTS[pose_style]
     )
 
 # ==================================================
